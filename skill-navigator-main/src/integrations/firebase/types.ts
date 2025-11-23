@@ -18,6 +18,7 @@ export interface Resume {
   uploaded_at: string;
   status: 'pending' | 'processing' | 'completed' | 'error' | 'analyzed';
   extracted_text?: string;
+  file_url?: string;
 }
 
 export interface ResumeAnalysis {

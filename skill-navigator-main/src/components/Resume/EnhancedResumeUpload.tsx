@@ -7,7 +7,7 @@ import { Upload, FileText, Loader2, CheckCircle2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import * as pdfjsLib from "pdfjs-dist";
 import { Progress } from "@/components/ui/progress";
-import { storageService } from "@/integrations/supabase/storage";
+import { storageService, sanitizePath } from "@/integrations/supabase/storage";
 
 interface EnhancedResumeUploadProps {
   onUploadComplete?: () => void;
@@ -56,7 +56,7 @@ export const EnhancedResumeUpload = ({
     const pagePromises = [];
     for (let pageNum = 1; pageNum <= immediatePages; pageNum++) {
       pagePromises.push(
-        pdf.getPage(pageNum).then(page => 
+        pdf.getPage(pageNum).then(page =>
           page.getTextContent().then(textContent => {
             const pageText = textContent.items.map((item: any) => item.str).join(" ");
             return pageText;
@@ -73,7 +73,7 @@ export const EnhancedResumeUpload = ({
       const remainingPromises = [];
       for (let pageNum = immediatePages + 1; pageNum <= pagesToProcess; pageNum++) {
         remainingPromises.push(
-          pdf.getPage(pageNum).then(page => 
+          pdf.getPage(pageNum).then(page =>
             page.getTextContent().then(textContent => {
               const pageText = textContent.items.map((item: any) => item.str).join(" ");
               return pageText;
@@ -134,13 +134,17 @@ export const EnhancedResumeUpload = ({
         prev.map((f) => (f.id === fileUpload.id ? { ...f, progress: 50 } : f))
       );
 
+      // Generate consistent file path
+      const filePath = sanitizePath(`${user.uid}/${Date.now()}_${fileUpload.file.name}`);
+
       // Save resume metadata to Firestore IMMEDIATELY (before upload)
       const resumeDoc = await addDoc(collection(db, "resumes"), {
         user_id: user.uid,
         file_name: fileUpload.file.name,
-        file_path: `${user.uid}/${Date.now()}_${fileUpload.file.name}`,
+        file_path: filePath,
         file_size: fileUpload.file.size,
         status: "processing",
+        storage_provider: "supabase",
         uploaded_at: serverTimestamp(),
         extracted_text: text.substring(0, 1000), // Store first 1000 chars for quick access
       });
@@ -176,16 +180,16 @@ export const EnhancedResumeUpload = ({
         )
       );
 
-      // Upload file to Supabase Storage in background (non-blocking)
-      const fileName = `${user.uid}/${Date.now()}_${fileUpload.file.name}`;
-      
-      storageService.uploadFile(fileUpload.file, fileName)
+      // Upload file to Supabase Storage
+
+      storageService.uploadFile(fileUpload.file, filePath)
         .then(async (downloadURL) => {
           // Update resume with file path and URL (non-blocking)
           await updateDoc(doc(db, "resumes", resumeDoc.id), {
-            file_path: fileName,
+            file_path: filePath,
             file_url: downloadURL,
             status: "completed",
+            storage_provider: "supabase"
           });
 
           console.log("File upload completed:", downloadURL);
@@ -237,20 +241,18 @@ export const EnhancedResumeUpload = ({
   return (
     <div className={className}>
       <Card
-        className={`glass rounded-2xl p-8 border-2 border-dashed transition-all duration-300 relative z-10 ${
-          isDragging
-            ? "border-primary scale-105 glow-pulse"
-            : "border-white/10 hover:border-primary/30"
-        }`}
+        className={`glass rounded-2xl p-8 border-2 border-dashed transition-all duration-300 relative z-10 ${isDragging
+          ? "border-primary scale-105 glow-pulse"
+          : "border-white/10 hover:border-primary/30"
+          }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
         <div className="text-center mb-6">
           <div
-            className={`w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center mx-auto mb-4 glow transition-transform ${
-              isDragging ? "scale-110" : ""
-            }`}
+            className={`w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center mx-auto mb-4 glow transition-transform ${isDragging ? "scale-110" : ""
+              }`}
           >
             <Upload className="h-8 w-8 text-white" />
           </div>

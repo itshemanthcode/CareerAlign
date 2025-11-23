@@ -83,10 +83,15 @@ const Auth = () => {
 
         toast({
           title: "Account created!",
-          description: "You can now log in with your credentials.",
+          description: "Welcome to CareerAlign AI!",
         });
 
-        setIsLogin(true);
+        // Navigate immediately after successful signup and profile creation
+        if (userType === "recruiter") {
+          navigate("/hr-dashboard");
+        } else {
+          navigate("/candidate-dashboard");
+        }
       }
     } catch (error: any) {
       toast({

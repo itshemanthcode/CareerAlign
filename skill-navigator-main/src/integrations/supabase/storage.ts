@@ -13,13 +13,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Storage bucket name – read from environment (fallback to 'resumes')
-export const STORAGE_BUCKET = import.meta.env.SUPABASE_STORAGE_BUCKET || 'resumes';
-if (!import.meta.env.SUPABASE_STORAGE_BUCKET) {
-  console.warn('SUPABASE_STORAGE_BUCKET not set in .env; using default "resumes"');
+export const STORAGE_BUCKET = import.meta.env.VITE_SUPABASE_STORAGE_BUCKET || 'resumes';
+if (!import.meta.env.VITE_SUPABASE_STORAGE_BUCKET) {
+  console.warn('VITE_SUPABASE_STORAGE_BUCKET not set in .env; using default "resumes"');
 }
 
 // Helper to sanitize storage paths (replace spaces and parentheses with underscores)
-const sanitizePath = (p: string) => {
+export const sanitizePath = (p: string) => {
   // Replace spaces and parentheses with underscores
   let cleaned = p.replace(/[\s()]+/g, "_");
   // Collapse multiple consecutive dots into a single dot
@@ -109,12 +109,54 @@ export const storageService = {
   },
 
   /**
+   * Create a signed URL for a file (valid for 1 hour)
+   * @param path - Storage path
+   * @returns Promise with signed URL
+   */
+  async createSignedUrl(path: string): Promise<string> {
+    const safePath = sanitizePath(path);
+
+    // Helper to try creating signed URL with a specific client
+    const tryCreateSignedUrl = async (client: any) => {
+      const { data, error } = await client.storage
+        .from(STORAGE_BUCKET)
+        .createSignedUrl(safePath, 3600);
+
+      if (error) throw error;
+      return data.signedUrl;
+    };
+
+    try {
+      // 1. Try with authenticated client
+      const authClient = await getAuthenticatedSupabaseClient();
+      return await tryCreateSignedUrl(authClient);
+    } catch (authError) {
+      console.warn('Authenticated signed URL creation failed, trying anon:', authError);
+
+      // 2. Fallback to anonymous client
+      try {
+        return await tryCreateSignedUrl(supabase);
+      } catch (anonError: any) {
+        throw new Error(`Create signed URL failed (anon): ${anonError.message}`);
+      }
+    }
+  },
+
+  /**
    * Delete a file from storage
    * @param path - Storage path
    */
   async deleteFile(path: string): Promise<void> {
+    // Use authenticated client if available
+    let client = supabase;
+    try {
+      client = await getAuthenticatedSupabaseClient();
+    } catch (error) {
+      console.warn('Could not get authenticated client for delete, using default:', error);
+    }
+
     const safePath = sanitizePath(path);
-    const { error } = await supabase.storage
+    const { error } = await client.storage
       .from(STORAGE_BUCKET)
       .remove([safePath]);
 
@@ -130,27 +172,39 @@ export const storageService = {
    */
   async downloadFile(path: string): Promise<Blob> {
     console.log('Supabase download attempt:', { bucket: STORAGE_BUCKET, path });
-
     const safePath = sanitizePath(path);
-    const { data, error } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .download(safePath);
 
-    if (error) {
-      console.error('Supabase download error:', {
-        message: error.message,
-        error: error,
-        path: path,
-        bucket: STORAGE_BUCKET
-      });
-      throw new Error(`Download failed: ${error.message || JSON.stringify(error)}`);
+    // Helper to try downloading with a specific client
+    const tryDownload = async (client: any) => {
+      const { data, error } = await client.storage
+        .from(STORAGE_BUCKET)
+        .download(safePath);
+
+      if (error) throw error;
+      return data;
+    };
+
+    try {
+      // 1. Try with authenticated client
+      const authClient = await getAuthenticatedSupabaseClient();
+      return await tryDownload(authClient);
+    } catch (authError) {
+      console.warn('Authenticated download failed, trying anon:', authError);
+
+      // 2. Fallback to anonymous client
+      try {
+        return await tryDownload(supabase);
+      } catch (anonError: any) {
+        console.error('Supabase download error (anon):', {
+          message: anonError.message,
+          details: anonError,
+          path: path,
+          safePath: safePath,
+          bucket: STORAGE_BUCKET
+        });
+        throw new Error(`Download failed: ${anonError.message || JSON.stringify(anonError)}`);
+      }
     }
-
-    if (!data) {
-      throw new Error('Download failed: No data returned from Supabase');
-    }
-
-    return data;
   },
 };
 

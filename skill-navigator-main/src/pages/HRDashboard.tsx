@@ -1131,48 +1131,6 @@ const HRDashboard = () => {
                       {/* Actions */}
                       <div className="flex gap-2">
                         <Button
-                          className="flex-1 bg-gradient-primary"
-                          onClick={async () => {
-                            if (resume.file_path) {
-                              try {
-                                console.log('Attempting to download:', resume.file_path);
-                                // Use Supabase storage service to download the file
-                                const { storageService } = await import('@/integrations/supabase/storage');
-                                const blob = await storageService.downloadFile(resume.file_path);
-
-                                // Create download link
-                                const url = window.URL.createObjectURL(blob);
-                                const link = document.createElement('a');
-                                link.href = url;
-                                link.download = resume.file_name || 'resume.pdf';
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                                window.URL.revokeObjectURL(url);
-
-                                toast({ title: "Download started", description: "Your resume download has begun" });
-                              } catch (error: any) {
-                                console.error('Download error details:', {
-                                  message: error?.message,
-                                  stack: error?.stack,
-                                  error: error,
-                                  filePath: resume.file_path
-                                });
-                                toast({
-                                  title: "Download failed",
-                                  description: error?.message || JSON.stringify(error) || "Failed to download resume. Check console for details.",
-                                  variant: "destructive"
-                                });
-                              }
-                            } else {
-                              toast({ title: "File unavailable", description: "Resume file path not found", variant: "destructive" });
-                            }
-                          }}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Download Resume
-                        </Button>
-                        <Button
                           variant="outline"
                           className="glass"
                           onClick={() => handleShortlist(resume.id)}
