@@ -12,7 +12,8 @@ import {
   doc,
   updateDoc,
   getDoc,
-  where
+  where,
+  deleteDoc
 } from "firebase/firestore";
 import Header from "@/components/Layout/Header";
 import { EnhancedResumeUpload } from "@/components/Resume/EnhancedResumeUpload";
@@ -23,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Upload, FileText, TrendingUp, Users, Loader2, CheckCircle2, Clock, Search, Download, Filter, X, BarChart3, Sparkles, Eye, UserPlus, UserMinus, Star } from "lucide-react";
+import { Upload, FileText, TrendingUp, Users, Loader2, CheckCircle2, Clock, Search, Download, Filter, X, BarChart3, Sparkles, Eye, UserPlus, UserMinus, Star, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -276,7 +277,8 @@ const HRDashboard = () => {
     .filter(resume => {
       const matchesSearch =
         resume.file_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        resume.candidateName?.toLowerCase().includes(searchTerm.toLowerCase());
+        resume.candidateName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (resume.matchScore !== undefined && resume.matchScore.toString().includes(searchTerm));
       const matchesScore =
         (resume.matchScore || 0) >= matchScoreRange[0] &&
         (resume.matchScore || 0) <= matchScoreRange[1];
@@ -449,6 +451,20 @@ const HRDashboard = () => {
       education: "BS in CS",
     }));
 
+  const handleDeleteResume = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this resume? This action cannot be undone.")) return;
+
+    try {
+      await deleteDoc(doc(db, "resumes", id));
+      setResumes(prev => prev.filter(r => r.id !== id));
+      toast({ title: "Resume deleted", description: "The resume has been permanently removed." });
+      if (selectedResumeId === id) setSelectedResumeId(null);
+    } catch (error: any) {
+      console.error("Error deleting resume:", error);
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       <FloatingShapes count={3} />
@@ -608,7 +624,6 @@ const HRDashboard = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="score">Match Score</SelectItem>
-                    <SelectItem value="date">Upload Date</SelectItem>
                     <SelectItem value="name">Name</SelectItem>
                   </SelectContent>
                 </Select>
@@ -798,6 +813,14 @@ const HRDashboard = () => {
                             ) : (
                               <UserPlus className="h-4 w-4" />
                             )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-red-500/20 hover:text-red-500"
+                            onClick={() => handleDeleteResume(resume.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -1146,6 +1169,14 @@ const HRDashboard = () => {
                               Add to Shortlist
                             </>
                           )}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          className="glass bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/20"
+                          onClick={() => handleDeleteResume(resume.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Resume
                         </Button>
                       </div>
                     </div>

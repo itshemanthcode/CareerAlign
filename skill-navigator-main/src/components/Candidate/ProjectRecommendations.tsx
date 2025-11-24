@@ -112,7 +112,11 @@ export const ProjectRecommendations = ({ projects }: ProjectRecommendationsProps
                   className="flex-1 glass hover:bg-primary/10"
                   asChild
                 >
-                  <a href={resource.url} target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={resource.url.includes('search_query=') ? `${resource.url}${encodeURIComponent(project.title + " tutorial")}` : resource.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <span>{resource.name}</span>
                     <ExternalLink className="h-3 w-3 ml-2" />
                   </a>

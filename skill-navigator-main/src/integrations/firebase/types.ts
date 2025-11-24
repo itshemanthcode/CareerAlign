@@ -33,6 +33,14 @@ export interface ResumeAnalysis {
   learning_recommendations: Array<{ course: string; platform: string; url: string }>;
   project_suggestions: Array<{ title: string; description: string; skills: string[] }>;
   ats_score: number;
+  ats_breakdown?: {
+    skill_match_score: number;
+    keyword_match_score: number;
+    experience_match_score: number;
+    education_match_score: number;
+    formatting_score: number;
+    final_ats_score: number;
+  };
   predicted_roles: string[];
   analyzed_at: string;
 }

@@ -12,7 +12,8 @@ import {
   getDoc,
   addDoc,
   updateDoc,
-  limit
+  limit,
+  deleteDoc
 } from "firebase/firestore";
 import Header from "@/components/Layout/Header";
 import ResumeUpload from "@/components/Resume/ResumeUpload";
@@ -300,8 +301,7 @@ const CandidateDashboard = () => {
     estimatedTime: "2-4 weeks",
     impactScore: 75 + Math.floor(Math.random() * 20),
     resources: [
-      { name: "Tutorial", url: "https://www.google.com" },
-      { name: "GitHub", url: "https://github.com" },
+      { name: "Tutorial", url: "https://www.youtube.com/results?search_query=" },
     ],
   })) || [];
 
@@ -349,6 +349,31 @@ const CandidateDashboard = () => {
                     <History className="h-5 w-5 text-primary" />
                     <h3 className="text-lg font-semibold">Resume History</h3>
                   </div>
+                  {uploadedResumeId && (
+                    <div className="mb-4 flex justify-end">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="h-8 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20"
+                        onClick={async () => {
+                          if (!confirm("Are you sure you want to delete this resume?")) return;
+                          try {
+                            await deleteDoc(doc(db, "resumes", uploadedResumeId));
+                            setResumes(prev => prev.filter(r => r.id !== uploadedResumeId));
+                            setUploadedResumeId(null);
+                            setUploadedResumeText(null);
+                            setLatestAnalysis(null);
+                            toast({ title: "Resume deleted" });
+                          } catch (e) {
+                            console.error(e);
+                            toast({ title: "Delete failed", variant: "destructive" });
+                          }
+                        }}
+                      >
+                        Delete Selected
+                      </Button>
+                    </div>
+                  )}
                   <p className="text-sm text-muted-foreground mb-4">Select a previously uploaded resume to analyze</p>
                   <Select
                     value={uploadedResumeId || ""}
@@ -428,7 +453,7 @@ const CandidateDashboard = () => {
                     setAnalyzing(true);
                     try {
                       // Use client-side analysis (can be replaced with Cloud Function later)
-                      const jdText = jobDescription || `Looking for ${selectedJobRole} with relevant experience and skills.`;
+                      const jdText = jobDescription || selectedJobRole || `Looking for ${selectedJobRole} with relevant experience and skills.`;
                       const analysis = await analyzeResumeText(uploadedResumeText!, jdText);
 
                       // Save to Firestore
