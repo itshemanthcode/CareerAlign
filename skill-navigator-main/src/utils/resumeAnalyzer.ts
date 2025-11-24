@@ -30,18 +30,60 @@ export async function analyzeResumeText(resumeText: string, jobDescription: stri
   const text = resumeText.toLowerCase();
   const jd = jobDescription.toLowerCase();
 
-  // Extract skills from common technical keywords
+  // Expanded list of common technical keywords
   const commonSkills = [
-    'javascript', 'typescript', 'react', 'angular', 'vue', 'node.js', 'python', 'java',
-    'c++', 'c#', 'sql', 'mongodb', 'postgresql', 'aws', 'azure', 'docker', 'kubernetes',
-    'git', 'agile', 'scrum', 'rest api', 'graphql', 'html', 'css', 'tailwind',
-    'express', 'django', 'flask', 'spring boot', 'machine learning', 'ai', 'data science',
+    // Web Development
+    'javascript', 'typescript', 'react', 'angular', 'vue', 'node.js', 'express', 'next.js', 'nest.js',
+    'html', 'css', 'tailwind', 'redux', 'webpack', 'vite', 'graphql', 'rest api',
+
+    // Backend & Languages
+    'python', 'java', 'c++', 'c#', 'c', 'go', 'golang', 'rust', 'php', 'ruby', 'scala',
+    'django', 'flask', 'spring boot', '.net', 'laravel', 'rails',
+
+    // Database
+    'sql', 'mysql', 'postgresql', 'mongodb', 'redis', 'elasticsearch', 'cassandra', 'dynamodb',
+
+    // Cloud & DevOps
+    'aws', 'azure', 'gcp', 'google cloud', 'docker', 'kubernetes', 'jenkins', 'github actions',
+    'gitlab ci', 'circleci', 'terraform', 'ansible', 'linux', 'bash', 'shell scripting',
+
+    // Data Science & AI
+    'machine learning', 'deep learning', 'ai', 'data science', 'nlp', 'computer vision',
+    'pandas', 'numpy', 'scikit-learn', 'tensorflow', 'pytorch', 'keras', 'matplotlib', 'seaborn',
+    'statistics', 'linear algebra', 'r', 'spark', 'hadoop',
+
+    // Mobile
+    'react native', 'flutter', 'swift', 'kotlin', 'ios', 'android', 'dart',
+
+    // QA & Testing
+    'selenium', 'cypress', 'jest', 'mocha', 'chai', 'junit', 'testing', 'qa',
+
+    // Tools & Methodologies
+    'git', 'agile', 'scrum', 'jira', 'confluence', 'figma', 'adobe xd', 'postman',
+
+    // Soft Skills
     'leadership', 'communication', 'teamwork', 'problem solving', 'project management',
-    'deep learning', 'nlp', 'computer vision', 'statistics', 'linear algebra',
-    'pandas', 'numpy', 'scikit-learn', 'tensorflow', 'pytorch', 'keras',
-    'redux', 'next.js', 'nest.js', 'ci/cd', 'jenkins', 'terraform', 'ansible',
-    'linux', 'bash', 'shell scripting', 'jira', 'confluence', 'figma', 'adobe xd'
+    'critical thinking', 'adaptability', 'time management'
   ];
+
+  // Mapping of Job Roles to Required Skills
+  const roleSkillsMap: Record<string, string[]> = {
+    "frontend developer": ["react", "javascript", "typescript", "html", "css", "tailwind", "git", "redux"],
+    "backend developer": ["node.js", "python", "java", "sql", "mongodb", "api", "git", "docker"],
+    "full stack developer": ["react", "node.js", "javascript", "typescript", "sql", "mongodb", "git", "aws"],
+    "mobile developer": ["react native", "flutter", "ios", "android", "swift", "kotlin", "git"],
+    "data scientist": ["python", "machine learning", "statistics", "sql", "pandas", "numpy", "tensorflow"],
+    "data analyst": ["sql", "python", "excel", "tableau", "power bi", "statistics", "data visualization"],
+    "devops engineer": ["docker", "kubernetes", "aws", "linux", "jenkins", "terraform", "ci/cd", "python"],
+    "cloud architect": ["aws", "azure", "gcp", "cloud security", "networking", "terraform", "docker"],
+    "software engineer": ["javascript", "python", "java", "git", "sql", "problem solving", "algorithms"],
+    "qa engineer": ["selenium", "cypress", "testing", "javascript", "python", "sql", "git"],
+    "security engineer": ["network security", "linux", "python", "cybersecurity", "penetration testing", "firewalls"],
+    "ui/ux designer": ["figma", "adobe xd", "prototyping", "wireframing", "css", "html", "user research"],
+    "product manager": ["product management", "agile", "scrum", "jira", "communication", "roadmap", "analytics"],
+    "ai engineer": ["python", "machine learning", "deep learning", "tensorflow", "pytorch", "nlp", "api"],
+    "machine learning engineer": ["python", "machine learning", "tensorflow", "pytorch", "scikit-learn", "sql", "aws"]
+  };
 
   const extracted_skills = commonSkills.filter(skill => text.includes(skill));
 
@@ -85,7 +127,31 @@ export async function analyzeResumeText(resumeText: string, jobDescription: stri
   let final_ats_score = 0;
 
   if (jd) {
-    const jdSkills = commonSkills.filter(skill => jd.includes(skill));
+    // 1. Extract skills from JD text
+    let jdSkills = commonSkills.filter(skill => jd.includes(skill));
+
+    // 2. Inject skills based on Job Role if present in JD
+    // This fixes the issue where selecting a role like "Frontend Developer" resulted in 0 required skills
+    // because the role name itself isn't a skill, and the generated JD text was too generic.
+    Object.entries(roleSkillsMap).forEach(([role, skills]) => {
+      if (jd.includes(role)) {
+        // Add skills for this role if they aren't already in the list
+        skills.forEach(skill => {
+          if (!jdSkills.includes(skill)) {
+            jdSkills.push(skill);
+          }
+        });
+      }
+    });
+
+    // If still no skills found (fallback for very generic JD), try to infer from common titles
+    if (jdSkills.length === 0) {
+      // Try to find any role match even if fuzzy
+      const foundRole = Object.keys(roleSkillsMap).find(role => jd.includes(role.split(' ')[0])); // e.g. match "frontend"
+      if (foundRole) {
+        jdSkills = [...roleSkillsMap[foundRole]];
+      }
+    }
 
     // --- 1. Skill Match Score (40%) ---
     // Formula: (matching_skills / total_jd_skills) * 40
