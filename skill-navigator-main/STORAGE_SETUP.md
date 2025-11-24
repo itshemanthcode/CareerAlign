@@ -47,3 +47,4 @@ The storage service automatically:
 - File paths remain the same format: `userId/timestamp_filename.pdf`
 - Existing Firebase Storage files are not migrated automatically
 
+

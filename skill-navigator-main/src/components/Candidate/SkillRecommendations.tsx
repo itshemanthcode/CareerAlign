@@ -108,3 +108,4 @@ export const SkillRecommendations = ({ recommendations, jobRole }: SkillRecommen
   );
 };
 
+

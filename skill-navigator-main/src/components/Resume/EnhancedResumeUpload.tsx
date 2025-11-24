@@ -36,43 +36,31 @@ export const EnhancedResumeUpload = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const extractTextFromPDF = async (file: File): Promise<string> => {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({
-      data: arrayBuffer,
-      verbosity: 0,
-      disableAutoFetch: true,
-      disableStream: true,
-    }).promise;
-
-    let fullText = "";
-    // Process only first 2 pages immediately for faster feedback
-    const maxPages = 5;
-    const pagesToProcess = Math.min(pdf.numPages, maxPages);
-    const immediatePages = Math.min(2, pagesToProcess);
-
-    // Process first 2 pages immediately
-    const pagePromises = [];
-    for (let pageNum = 1; pageNum <= immediatePages; pageNum++) {
-      pagePromises.push(
-        pdf.getPage(pageNum).then(page =>
-          page.getTextContent().then(textContent => {
-            const pageText = textContent.items.map((item: any) => item.str).join(" ");
-            return pageText;
-          })
-        )
-      );
+  const extractText = async (file: File): Promise<string> => {
+    if (file.type === "text/plain") {
+      return await file.text();
     }
 
-    const pageTexts = await Promise.all(pagePromises);
-    fullText = pageTexts.join("\n");
+    if (file.type === "application/pdf") {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({
+        data: arrayBuffer,
+        verbosity: 0,
+        disableAutoFetch: true,
+        disableStream: true,
+      }).promise;
 
-    // Process remaining pages in background (non-blocking)
-    if (pagesToProcess > immediatePages) {
-      const remainingPromises = [];
-      for (let pageNum = immediatePages + 1; pageNum <= pagesToProcess; pageNum++) {
-        remainingPromises.push(
+      let fullText = "";
+      // Process only first 2 pages immediately for faster feedback
+      const maxPages = 5;
+      const pagesToProcess = Math.min(pdf.numPages, maxPages);
+      const immediatePages = Math.min(2, pagesToProcess);
+
+      // Process first 2 pages immediately
+      const pagePromises = [];
+      for (let pageNum = 1; pageNum <= immediatePages; pageNum++) {
+        pagePromises.push(
           pdf.getPage(pageNum).then(page =>
             page.getTextContent().then(textContent => {
               const pageText = textContent.items.map((item: any) => item.str).join(" ");
@@ -81,21 +69,51 @@ export const EnhancedResumeUpload = ({
           )
         );
       }
-      // Don't wait for these, process in background
-      Promise.all(remainingPromises).then(remainingTexts => {
-        const additionalText = remainingTexts.join("\n");
-        console.log("Additional pages processed:", additionalText.length);
-      }).catch(err => console.warn("Background page processing failed:", err));
+
+      const pageTexts = await Promise.all(pagePromises);
+      fullText = pageTexts.join("\n");
+
+      // Process remaining pages in background (non-blocking)
+      if (pagesToProcess > immediatePages) {
+        const remainingPromises = [];
+        for (let pageNum = immediatePages + 1; pageNum <= pagesToProcess; pageNum++) {
+          remainingPromises.push(
+            pdf.getPage(pageNum).then(page =>
+              page.getTextContent().then(textContent => {
+                const pageText = textContent.items.map((item: any) => item.str).join(" ");
+                return pageText;
+              })
+            )
+          );
+        }
+        // Don't wait for these, process in background
+        Promise.all(remainingPromises).then(remainingTexts => {
+          const additionalText = remainingTexts.join("\n");
+          console.log("Additional pages processed:", additionalText.length);
+        }).catch(err => console.warn("Background page processing failed:", err));
+      }
+
+      return fullText.trim();
     }
 
-    return fullText.trim();
+    // For other formats (DOC, DOCX, RTF), we might need a backend service or heavier library
+    // For now, return a placeholder or empty string so upload succeeds
+    return "";
   };
 
   const handleFileSelect = (selectedFiles: FileList | null) => {
     if (!selectedFiles) return;
 
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword", // .doc
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+      "text/plain",
+      "application/rtf"
+    ];
+
     const newFiles: FileUpload[] = Array.from(selectedFiles)
-      .filter((file) => file.type === "application/pdf" && file.size <= 10 * 1024 * 1024)
+      .filter((file) => allowedTypes.includes(file.type) && file.size <= 10 * 1024 * 1024)
       .map((file) => ({
         file,
         id: Math.random().toString(36).substring(7),
@@ -106,7 +124,7 @@ export const EnhancedResumeUpload = ({
     if (newFiles.length === 0) {
       toast({
         title: "Invalid files",
-        description: "Please upload PDF files under 10MB",
+        description: "Please upload PDF, DOC, DOCX, TXT, or RTF files under 10MB",
         variant: "destructive",
       });
       return;
@@ -129,7 +147,7 @@ export const EnhancedResumeUpload = ({
 
     try {
       // Extract text FIRST (optimized - only first 2 pages for speed)
-      const text = await extractTextFromPDF(fileUpload.file);
+      const text = await extractText(fileUpload.file);
       setFiles((prev) =>
         prev.map((f) => (f.id === fileUpload.id ? { ...f, progress: 50 } : f))
       );
@@ -263,14 +281,14 @@ export const EnhancedResumeUpload = ({
             Drag and drop {multiple ? "files" : "a file"} here, or click to browse
           </p>
           <p className="text-xs text-muted-foreground">
-            PDF format, max 10MB {multiple ? "per file" : ""}
+            PDF, DOC, DOCX, TXT, RTF format, max 10MB {multiple ? "per file" : ""}
           </p>
         </div>
 
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf"
+          accept=".pdf,.doc,.docx,.txt,.rtf"
           multiple={multiple}
           onChange={(e) => handleFileSelect(e.target.files)}
           className="hidden"

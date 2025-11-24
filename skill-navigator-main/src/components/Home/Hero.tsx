@@ -111,8 +111,7 @@ const Hero = () => {
               }`}
             style={{ animationDelay: '0.3s' }}
           >
-            AI-powered recruitment platform that automates resume screening, identifies skill gaps,
-            and provides personalized career growth paths for both recruiters and candidates.
+            Intelligent hiring for recruiters. Clear career paths for candidates. Bridging the gap with AI-driven screening and personalized growth plans.
           </p>
 
           {/* CTA Buttons */}
@@ -175,7 +174,7 @@ const Hero = () => {
           <div className="w-1 h-3 bg-emerald-400 rounded-full mt-2" />
         </div>
       </div>
-    </section>
+    </section >
   );
 };
 

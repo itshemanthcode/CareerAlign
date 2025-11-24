@@ -19,50 +19,36 @@ const ResumeUpload = ({ onUploadComplete, onUploaded }: ResumeUploadProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const extractTextFromPDF = async (file: File): Promise<string> => {
-    // Set up PDF.js worker from public directory
-    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
-
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({
-      data: arrayBuffer,
-      verbosity: 0,
-      // Additional optimizations
-      disableAutoFetch: true,
-      disableStream: true,
-    }).promise;
-
-    let fullText = "";
-    // Reduce to 5 pages for faster processing
-    const maxPages = 5;
-    const pagesToProcess = Math.min(pdf.numPages, maxPages);
-
-    // Process only first 2 pages immediately for faster feedback
-    // Process remaining pages in background if needed
-    const immediatePages = Math.min(2, pagesToProcess);
-    const pagePromises = [];
-
-    for (let pageNum = 1; pageNum <= immediatePages; pageNum++) {
-      pagePromises.push(
-        pdf.getPage(pageNum).then(page =>
-          page.getTextContent().then(textContent => {
-            const pageText = textContent.items
-              .map((item: any) => item.str)
-              .join(" ");
-            return pageText;
-          })
-        )
-      );
+  const extractText = async (file: File): Promise<string> => {
+    if (file.type === "text/plain") {
+      return await file.text();
     }
 
-    const pageTexts = await Promise.all(pagePromises);
-    fullText = pageTexts.join("\n");
+    if (file.type === "application/pdf") {
+      // Set up PDF.js worker from public directory
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
-    // Process remaining pages in background (non-blocking)
-    if (pagesToProcess > immediatePages) {
-      const remainingPromises = [];
-      for (let pageNum = immediatePages + 1; pageNum <= pagesToProcess; pageNum++) {
-        remainingPromises.push(
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({
+        data: arrayBuffer,
+        verbosity: 0,
+        // Additional optimizations
+        disableAutoFetch: true,
+        disableStream: true,
+      }).promise;
+
+      let fullText = "";
+      // Reduce to 5 pages for faster processing
+      const maxPages = 5;
+      const pagesToProcess = Math.min(pdf.numPages, maxPages);
+
+      // Process only first 2 pages immediately for faster feedback
+      // Process remaining pages in background if needed
+      const immediatePages = Math.min(2, pagesToProcess);
+      const pagePromises = [];
+
+      for (let pageNum = 1; pageNum <= immediatePages; pageNum++) {
+        pagePromises.push(
           pdf.getPage(pageNum).then(page =>
             page.getTextContent().then(textContent => {
               const pageText = textContent.items
@@ -73,29 +59,60 @@ const ResumeUpload = ({ onUploadComplete, onUploaded }: ResumeUploadProps) => {
           )
         );
       }
-      // Don't wait for these, but process them
-      Promise.all(remainingPromises).then(remainingTexts => {
-        const additionalText = remainingTexts.join("\n");
-        // Update the resume text in background if needed
-        console.log("Additional pages processed:", additionalText.length);
-      }).catch(err => console.warn("Background page processing failed:", err));
+
+      const pageTexts = await Promise.all(pagePromises);
+      fullText = pageTexts.join("\n");
+
+      // Process remaining pages in background (non-blocking)
+      if (pagesToProcess > immediatePages) {
+        const remainingPromises = [];
+        for (let pageNum = immediatePages + 1; pageNum <= pagesToProcess; pageNum++) {
+          remainingPromises.push(
+            pdf.getPage(pageNum).then(page =>
+              page.getTextContent().then(textContent => {
+                const pageText = textContent.items
+                  .map((item: any) => item.str)
+                  .join(" ");
+                return pageText;
+              })
+            )
+          );
+        }
+        // Don't wait for these, but process them
+        Promise.all(remainingPromises).then(remainingTexts => {
+          const additionalText = remainingTexts.join("\n");
+          // Update the resume text in background if needed
+          console.log("Additional pages processed:", additionalText.length);
+        }).catch(err => console.warn("Background page processing failed:", err));
+      }
+
+      if (pdf.numPages > maxPages) {
+        console.warn(`PDF has ${pdf.numPages} pages, processed first ${immediatePages} immediately`);
+      }
+
+      return fullText.trim();
     }
 
-    if (pdf.numPages > maxPages) {
-      console.warn(`PDF has ${pdf.numPages} pages, processed first ${immediatePages} immediately`);
-    }
-
-    return fullText.trim();
+    // For other formats (DOC, DOCX, RTF), return empty string for now
+    return "";
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== "application/pdf") {
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain",
+      "application/rtf"
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
       toast({
         title: "Invalid file type",
-        description: "Please upload a PDF file",
+        description: "Please upload a PDF, DOC, DOCX, TXT, or RTF file",
         variant: "destructive",
       });
       return;
@@ -118,7 +135,7 @@ const ResumeUpload = ({ onUploadComplete, onUploaded }: ResumeUploadProps) => {
       if (!user) throw new Error("Not authenticated");
 
       // Extract text FIRST (optimized - only first 2 pages for speed)
-      const text = await extractTextFromPDF(file);
+      const text = await extractText(file);
 
       // Save resume metadata to Firestore IMMEDIATELY (before upload)
       setUploadProgress("Saving resume data...");
@@ -216,12 +233,12 @@ const ResumeUpload = ({ onUploadComplete, onUploaded }: ResumeUploadProps) => {
             <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">Upload Your Resume</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              PDF format, max 10MB
+              PDF, DOC, DOCX, TXT, RTF format, max 10MB
             </p>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf"
+              accept=".pdf,.doc,.docx,.txt,.rtf"
               onChange={handleFileUpload}
               className="hidden"
               id="resume-upload"

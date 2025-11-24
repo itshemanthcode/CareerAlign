@@ -154,3 +154,4 @@ export const SkillsBreakdown = ({ matchedSkills, missingSkills }: SkillsBreakdow
   );
 };
 
+
