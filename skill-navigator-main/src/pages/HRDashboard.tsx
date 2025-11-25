@@ -318,6 +318,9 @@ const HRDashboard = () => {
     try {
       const updatedResumes: ResumeWithAnalysis[] = [];
 
+      // Update local state to processing immediately
+      setResumes(prev => prev.map(r => ({ ...r, status: "processing" })));
+
       // Analyze each resume
       for (const resume of resumes) {
         try {
@@ -356,6 +359,7 @@ const HRDashboard = () => {
             matching_skills: analysis.matching_skills,
             missing_skills: analysis.missing_skills,
             extra_skills: analysis.extra_skills,
+            status: "analyzed",
           });
         } catch (error: any) {
           console.error(`Error analyzing resume ${resume.id}: `, error);
@@ -781,12 +785,14 @@ const HRDashboard = () => {
                       )}
                       <TableCell>
                         <Badge variant="outline" className={`
-                          ${resume.status === 'completed' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                          ${resume.status === 'analyzed' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
                             resume.status === 'processing' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
                               'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
                           }
 `}>
-                          {resume.status || 'pending'}
+                          {resume.status === 'analyzed' ? 'Analyzed' :
+                            resume.status === 'processing' ? 'Processing' :
+                              'Pending'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
