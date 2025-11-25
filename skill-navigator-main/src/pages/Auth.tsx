@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db } from "@/integrations/firebase/config";
 import {
@@ -25,10 +25,11 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isLoggingIn = useRef(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
+      if (user && !isLoggingIn.current) {
         const profileDoc = await getDoc(doc(db, "profiles", user.uid));
         if (profileDoc.exists()) {
           const profileData = profileDoc.data();
@@ -47,6 +48,7 @@ const Auth = () => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    isLoggingIn.current = true;
 
     try {
       if (isLogin) {
@@ -56,6 +58,17 @@ const Auth = () => {
         const profileDoc = await getDoc(doc(db, "profiles", user.uid));
         if (profileDoc.exists()) {
           const profileData = profileDoc.data();
+
+          // Check if the selected user type matches the profile user type
+          if (profileData.user_type !== userType) {
+            await auth.signOut();
+            toast({
+              title: "Access Denied",
+              description: `You are registered as a ${profileData.user_type}. Please login as a ${profileData.user_type}.`,
+              variant: "destructive",
+            });
+            return;
+          }
 
           toast({
             title: "Welcome back!",
@@ -101,6 +114,7 @@ const Auth = () => {
       });
     } finally {
       setLoading(false);
+      isLoggingIn.current = false;
     }
   };
 
@@ -139,36 +153,36 @@ const Auth = () => {
                   className="bg-black/50 border-blue-600/30 focus:border-emerald-500 focus:ring-emerald-500/20 text-white placeholder:text-white/40 transition-all duration-300"
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-medium uppercase tracking-wider text-white/60 ml-1">I am a</Label>
-                <RadioGroup
-                  value={userType}
-                  onValueChange={(value: "recruiter" | "candidate") => setUserType(value)}
-                  className="grid grid-cols-2 gap-4"
-                >
-                  <div className="relative">
-                    <RadioGroupItem value="candidate" id="candidate" className="peer sr-only" />
-                    <Label
-                      htmlFor="candidate"
-                      className="flex flex-col items-center justify-center p-3 rounded-xl border border-blue-600/30 bg-black/50 cursor-pointer hover:bg-blue-900/20 peer-data-[state=checked]:border-emerald-500 peer-data-[state=checked]:bg-emerald-900/20 peer-data-[state=checked]:text-emerald-400 text-white transition-all duration-300"
-                    >
-                      <span className="font-semibold">Candidate</span>
-                    </Label>
-                  </div>
-                  <div className="relative">
-                    <RadioGroupItem value="recruiter" id="recruiter" className="peer sr-only" />
-                    <Label
-                      htmlFor="recruiter"
-                      className="flex flex-col items-center justify-center p-3 rounded-xl border border-blue-600/30 bg-black/50 cursor-pointer hover:bg-blue-900/20 peer-data-[state=checked]:border-emerald-500 peer-data-[state=checked]:bg-emerald-900/20 peer-data-[state=checked]:text-emerald-400 text-white transition-all duration-300"
-                    >
-                      <span className="font-semibold">Recruiter</span>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
             </div>
           )}
+
+          <div className="space-y-2 fade-in-up" style={{ animationDelay: '0.15s' }}>
+            <Label className="text-xs font-medium uppercase tracking-wider text-white/60 ml-1">{isLogin ? "Login as" : "I am a"}</Label>
+            <RadioGroup
+              value={userType}
+              onValueChange={(value: "recruiter" | "candidate") => setUserType(value)}
+              className="grid grid-cols-2 gap-4"
+            >
+              <div className="relative">
+                <RadioGroupItem value="candidate" id="candidate" className="peer sr-only" />
+                <Label
+                  htmlFor="candidate"
+                  className="flex flex-col items-center justify-center p-3 rounded-xl border border-blue-600/30 bg-black/50 cursor-pointer hover:bg-blue-900/20 peer-data-[state=checked]:border-emerald-500 peer-data-[state=checked]:bg-emerald-900/20 peer-data-[state=checked]:text-emerald-400 text-white transition-all duration-300"
+                >
+                  <span className="font-semibold">Candidate</span>
+                </Label>
+              </div>
+              <div className="relative">
+                <RadioGroupItem value="recruiter" id="recruiter" className="peer sr-only" />
+                <Label
+                  htmlFor="recruiter"
+                  className="flex flex-col items-center justify-center p-3 rounded-xl border border-blue-600/30 bg-black/50 cursor-pointer hover:bg-blue-900/20 peer-data-[state=checked]:border-emerald-500 peer-data-[state=checked]:bg-emerald-900/20 peer-data-[state=checked]:text-emerald-400 text-white transition-all duration-300"
+                >
+                  <span className="font-semibold">Recruiter</span>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
 
           <div className="space-y-2 fade-in-up" style={{ animationDelay: '0.2s' }}>
             <Label htmlFor="email" className="text-xs font-medium uppercase tracking-wider text-white/60 ml-1">Email</Label>
