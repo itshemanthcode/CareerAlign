@@ -841,15 +841,15 @@ const HRDashboard = () => {
         {/* Analytics Modal */}
         {showAnalytics && (
           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={() => setShowAnalytics(false)}>
-            <Card className="glass w-full max-w-4xl max-h-[90vh] overflow-auto relative" onClick={(e) => e.stopPropagation()}>
-              <div className="sticky top-0 bg-background/95 backdrop-blur p-6 border-b border-white/10 flex items-center justify-between">
-                <h2 className="text-2xl font-bold gradient-text">Analytics Dashboard</h2>
+            <Card className="glass w-full max-w-3xl max-h-[80vh] overflow-auto relative" onClick={(e) => e.stopPropagation()}>
+              <div className="sticky top-0 bg-background/95 backdrop-blur p-4 border-b border-white/10 flex items-center justify-between z-10">
+                <h2 className="text-xl font-bold gradient-text">Analytics Dashboard</h2>
                 <Button variant="ghost" size="icon" onClick={() => setShowAnalytics(false)}>
                   <X className="h-5 w-5" />
                 </Button>
               </div>
 
-              <div className="p-6 space-y-6">
+              <div className="p-4 space-y-6">
                 {/* Summary Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="glass rounded-xl p-4">
