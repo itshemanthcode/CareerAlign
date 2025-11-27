@@ -25,8 +25,8 @@ const ResumeUpload = ({ onUploadComplete, onUploaded }: ResumeUploadProps) => {
     }
 
     if (file.type === "application/pdf") {
-      // Set up PDF.js worker from public directory
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+      // Set up PDF.js worker - use CDN to avoid local path issues in production
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({
