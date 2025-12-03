@@ -86,7 +86,7 @@ const HRDashboard = () => {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
   // Track when the session started to only show new uploads
-  const [sessionStartTime] = useState(new Date());
+
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -117,7 +117,6 @@ const HRDashboard = () => {
       try {
         const resumesQuery = query(
           collection(db, "resumes"),
-          where("uploaded_at", ">=", sessionStartTime),
           orderBy("uploaded_at", "desc"),
           limit(30)
         );
@@ -162,11 +161,7 @@ const HRDashboard = () => {
             } as ResumeWithAnalysis);
           });
 
-          // Filter by session start time in memory for fallback
-          resumesData = resumesData.filter(r => {
-            const uploadedAt = new Date(r.uploaded_at);
-            return uploadedAt >= sessionStartTime;
-          });
+
 
           // Sort in memory
           if (resumesData.length > 0) {
