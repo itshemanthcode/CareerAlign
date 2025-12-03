@@ -141,9 +141,15 @@ const HRDashboard = () => {
           console.warn("Index not found, using fallback query:", indexError);
           useOrderBy = false;
 
+          toast({
+            title: "Performance Warning",
+            description: "Database index missing. Fetching recent resumes might be slower.",
+            variant: "default",
+          });
+
           const fallbackQuery = query(
             collection(db, "resumes"),
-            limit(50) // Get more to sort in memory
+            limit(100) // Get more to sort in memory
           );
 
           const snapshot = await getDocs(fallbackQuery);
