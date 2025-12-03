@@ -2,7 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, Target, TrendingUp, ExternalLink, Bookmark } from "lucide-react";
-import { use3DTilt } from "@/hooks/use3DTilt";
+
 import { useState } from "react";
 
 interface Project {
@@ -23,7 +23,6 @@ interface ProjectRecommendationsProps {
 }
 
 export const ProjectRecommendations = ({ projects }: ProjectRecommendationsProps) => {
-  const cardRef = use3DTilt();
   const [savedProjects, setSavedProjects] = useState<Set<number>>(new Set());
 
   const getDifficultyColor = (difficulty: string) => {
@@ -50,7 +49,7 @@ export const ProjectRecommendations = ({ projects }: ProjectRecommendationsProps
   };
 
   return (
-    <Card ref={cardRef} className="glass rounded-2xl p-6 card-tilt">
+    <Card className="glass rounded-2xl p-6">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#D4AF37] to-yellow-600 flex items-center justify-center glow-gold">
           <Target className="h-6 w-6 text-white" />

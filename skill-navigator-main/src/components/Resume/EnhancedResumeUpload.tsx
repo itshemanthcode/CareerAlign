@@ -36,48 +36,43 @@ export const EnhancedResumeUpload = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const extractText = async (file: File): Promise<string> => {
-    if (file.type === "text/plain") {
-      return await file.text();
-    }
-
-    if (file.type === "application/pdf") {
+  // Set worker source to local file
+  useEffect(() => {
+    // @ts-ignore - pdfjs-dist types might not include the worker import
+    import('pdfjs-dist/build/pdf.worker.min.mjs?url').then((module) => {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = module.default;
+    }).catch(err => {
+      console.error("Failed to load PDF worker:", err);
+      // Fallback to CDN if local load fails
       pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({
-        data: arrayBuffer,
-        verbosity: 0,
-        disableAutoFetch: true,
-        disableStream: true,
-      }).promise;
+    });
+  }, []);
 
-      let fullText = "";
-      // Process only first 2 pages immediately for faster feedback
-      const maxPages = 5;
-      const pagesToProcess = Math.min(pdf.numPages, maxPages);
-      const immediatePages = Math.min(2, pagesToProcess);
-
-      // Process first 2 pages immediately
-      const pagePromises = [];
-      for (let pageNum = 1; pageNum <= immediatePages; pageNum++) {
-        pagePromises.push(
-          pdf.getPage(pageNum).then(page =>
-            page.getTextContent().then(textContent => {
-              const pageText = textContent.items.map((item: any) => item.str).join(" ");
-              return pageText;
-            })
-          )
-        );
+  const extractText = async (file: File): Promise<string> => {
+    try {
+      if (file.type === "text/plain") {
+        return await file.text();
       }
 
-      const pageTexts = await Promise.all(pagePromises);
-      fullText = pageTexts.join("\n");
+      if (file.type === "application/pdf") {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({
+          data: arrayBuffer,
+          verbosity: 0,
+          disableAutoFetch: true,
+          disableStream: true,
+        }).promise;
 
-      // Process remaining pages in background (non-blocking)
-      if (pagesToProcess > immediatePages) {
-        const remainingPromises = [];
-        for (let pageNum = immediatePages + 1; pageNum <= pagesToProcess; pageNum++) {
-          remainingPromises.push(
+        let fullText = "";
+        // Process only first 2 pages immediately for faster feedback
+        const maxPages = 5;
+        const pagesToProcess = Math.min(pdf.numPages, maxPages);
+        const immediatePages = Math.min(2, pagesToProcess);
+
+        // Process first 2 pages immediately
+        const pagePromises = [];
+        for (let pageNum = 1; pageNum <= immediatePages; pageNum++) {
+          pagePromises.push(
             pdf.getPage(pageNum).then(page =>
               page.getTextContent().then(textContent => {
                 const pageText = textContent.items.map((item: any) => item.str).join(" ");
@@ -86,19 +81,42 @@ export const EnhancedResumeUpload = ({
             )
           );
         }
-        // Don't wait for these, process in background
-        Promise.all(remainingPromises).then(remainingTexts => {
-          const additionalText = remainingTexts.join("\n");
-          console.log("Additional pages processed:", additionalText.length);
-        }).catch(err => console.warn("Background page processing failed:", err));
+
+        const pageTexts = await Promise.all(pagePromises);
+        fullText = pageTexts.join("\n");
+
+        // Process remaining pages in background (non-blocking)
+        if (pagesToProcess > immediatePages) {
+          const remainingPromises = [];
+          for (let pageNum = immediatePages + 1; pageNum <= pagesToProcess; pageNum++) {
+            remainingPromises.push(
+              pdf.getPage(pageNum).then(page =>
+                page.getTextContent().then(textContent => {
+                  const pageText = textContent.items.map((item: any) => item.str).join(" ");
+                  return pageText;
+                })
+              )
+            );
+          }
+          // Don't wait for these, process in background
+          Promise.all(remainingPromises).then(remainingTexts => {
+            const additionalText = remainingTexts.join("\n");
+            console.log("Additional pages processed:", additionalText.length);
+          }).catch(err => console.warn("Background page processing failed:", err));
+        }
+
+        return fullText.trim();
       }
 
-      return fullText.trim();
+      // For other formats (DOC, DOCX, RTF), we might need a backend service or heavier library
+      // For now, return a placeholder or empty string so upload succeeds
+      return "";
+    } catch (error) {
+      console.error("Error extracting text:", error);
+      // Return empty string on error to allow upload to proceed, but log it
+      // The user will see the file uploaded but maybe with no text analysis
+      return "";
     }
-
-    // For other formats (DOC, DOCX, RTF), we might need a backend service or heavier library
-    // For now, return a placeholder or empty string so upload succeeds
-    return "";
   };
 
   const handleFileSelect = (selectedFiles: FileList | null) => {

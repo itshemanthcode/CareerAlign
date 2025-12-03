@@ -748,7 +748,7 @@ const HRDashboard = () => {
                     <TableRow key={resume.id} className="border-white/10 hover:bg-white/5">
                       {analyzed && (
                         <TableCell className="font-medium">
-                          <div className={`w - 8 h - 8 rounded - full flex items - center justify - center text - xs font - bold ${index === 0
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${index === 0
                             ? "bg-yellow-500/20 text-yellow-500"
                             : index === 1
                               ? "bg-gray-400/20 text-gray-400"
@@ -773,7 +773,7 @@ const HRDashboard = () => {
                           <div className="flex items-center gap-2">
                             <div className="w-full max-w-[100px] h-2 bg-secondary/30 rounded-full overflow-hidden">
                               <div
-                                className={`h - full rounded - full ${(resume.matchScore || 0) >= 70 ? 'bg-green-500' :
+                                className={`h-full rounded-full ${(resume.matchScore || 0) >= 70 ? 'bg-green-500' :
                                   (resume.matchScore || 0) >= 40 ? 'bg-yellow-500' : 'bg-red-500'
                                   } `}
                                 style={{ width: `${resume.matchScore || 0}% ` }}
@@ -811,7 +811,7 @@ const HRDashboard = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className={`h - 8 w - 8 ${shortlistedIds.has(resume.id) ? 'text-green-500 bg-green-500/10' : 'hover:bg-green-500/20 hover:text-green-500'} `}
+                            className={`h-8 w-8 ${shortlistedIds.has(resume.id) ? 'text-green-500 bg-green-500/10' : 'hover:bg-green-500/20 hover:text-green-500'} `}
                             onClick={() => handleShortlist(resume.id)}
                           >
                             {shortlistedIds.has(resume.id) ? (
@@ -885,7 +885,7 @@ const HRDashboard = () => {
                         <span className="text-sm font-medium w-20">{range}</span>
                         <div className="flex-1 h-8 bg-secondary/30 rounded-lg overflow-hidden relative">
                           <div
-                            className={`h - full ${color} transition - all duration - 500`}
+                            className={`h-full ${color} transition-all duration-500`}
                             style={{ width: `${stats.total > 0 ? (count / stats.total) * 100 : 0}% ` }}
                           />
                           <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">
@@ -928,10 +928,10 @@ const HRDashboard = () => {
 
                           return (
                             <div key={key} className="flex items-center gap-3">
-                              <span className={`text - sm font - medium w - 24 ${color} `}>{label}</span>
+                              <span className={`text-sm font-medium w-24 ${color} `}>{label}</span>
                               <div className="flex-1 h-8 bg-secondary/30 rounded-lg overflow-hidden relative">
                                 <div
-                                  className={`h - full ${bgColor} transition - all duration - 500`}
+                                  className={`h-full ${bgColor} transition-all duration-500`}
                                   style={{ width: `${percentage}% ` }}
                                 />
                                 <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">
