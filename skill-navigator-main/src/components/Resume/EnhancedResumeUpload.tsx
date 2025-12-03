@@ -36,16 +36,13 @@ export const EnhancedResumeUpload = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Set worker source to local file
+  // Set worker source to CDN
   useEffect(() => {
-    // @ts-ignore - pdfjs-dist types might not include the worker import
-    import('pdfjs-dist/build/pdf.worker.min.mjs?url').then((module) => {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = module.default;
-    }).catch(err => {
-      console.error("Failed to load PDF worker:", err);
-      // Fallback to CDN if local load fails
+    try {
       pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
-    });
+    } catch (e) {
+      console.error("Failed to set PDF worker source:", e);
+    }
   }, []);
 
   const extractText = async (file: File): Promise<string> => {
