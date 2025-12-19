@@ -1,5 +1,0 @@
-Flask
-pdfminer.six
-spacy
-scikit-learn
-nltk
