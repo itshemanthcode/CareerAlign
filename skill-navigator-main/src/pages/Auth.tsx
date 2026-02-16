@@ -27,23 +27,8 @@ const Auth = () => {
   const { toast } = useToast();
   const isLoggingIn = useRef(false);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user && !isLoggingIn.current) {
-        const profileDoc = await getDoc(doc(db, "profiles", user.uid));
-        if (profileDoc.exists()) {
-          const profileData = profileDoc.data();
-          if (profileData.user_type === "recruiter") {
-            navigate("/hr-dashboard");
-          } else {
-            navigate("/candidate-dashboard");
-          }
-        }
-      }
-    });
-
-    return () => unsubscribe();
-  }, [navigate]);
+  // Removed auto-redirect to prevent loops. 
+  // Instead, we will show a "Welcome Back" screen if user is already logged in.
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,6 +102,49 @@ const Auth = () => {
       isLoggingIn.current = false;
     }
   };
+
+  if (auth.currentUser && !loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+        <FloatingShapes count={3} />
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-emerald-950 to-blue-950 pointer-events-none" />
+        <Card className="w-full max-w-md p-8 bg-black/30 backdrop-blur-sm border border-blue-600/30 relative z-10 fade-in-up">
+          <div className="text-center mb-8">
+            <div className="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 mx-auto mb-4 group">
+              <Brain className="h-8 w-8 text-white icon-bounce" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">Welcome Back</h1>
+            <p className="text-white/70">You are already signed in.</p>
+          </div>
+
+          <div className="space-y-4">
+            <Button
+              className="w-full bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white font-bold h-11"
+              onClick={async () => {
+                const profileDoc = await getDoc(doc(db, "profiles", auth.currentUser!.uid));
+                if (profileDoc.exists()) {
+                  const type = profileDoc.data().user_type;
+                  navigate(type === "recruiter" ? "/hr-dashboard" : "/candidate-dashboard");
+                } else {
+                  // Fallback if no profile
+                  await auth.signOut();
+                }
+              }}
+            >
+              Go to Dashboard
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 h-11"
+              onClick={() => auth.signOut()}
+            >
+              Sign Out
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
