@@ -268,8 +268,9 @@ const HRDashboard = () => {
 
   if (authLoading || (loading && resumes.length === 0)) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center pt-20">
+      <div className="min-h-screen bg-background flex items-center justify-center pt-20 relative z-50">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-primary">Loading Dashboard...</span>
       </div>
     );
   }
@@ -475,7 +476,7 @@ const HRDashboard = () => {
       <FloatingShapes count={3} />
       <Header />
 
-      <main className="container mx-auto px-4 py-8 pt-28 relative z-20">
+      <main className="container mx-auto px-4 py-8 pt-28 relative z-30">
         {/* Header Section */}
         <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
