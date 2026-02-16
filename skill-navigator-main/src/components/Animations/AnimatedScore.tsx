@@ -9,22 +9,23 @@ interface AnimatedScoreProps {
   className?: string;
 }
 
-export const AnimatedScore = ({ 
-  score, 
-  size = "lg", 
-  showLabel = true, 
+export const AnimatedScore = ({
+  score,
+  size = "lg",
+  showLabel = true,
   label = "Match Score",
-  className = "" 
+  className = ""
 }: AnimatedScoreProps) => {
   const [displayScore, setDisplayScore] = useState(0);
 
   useEffect(() => {
     let current = 0;
-    const increment = score / 100;
+    const targetScore = isNaN(score) ? 0 : score;
+    const increment = targetScore / 100;
     const timer = setInterval(() => {
       current += increment;
-      if (current >= score) {
-        current = score;
+      if (current >= targetScore) {
+        current = targetScore;
         clearInterval(timer);
       }
       setDisplayScore(Math.round(current));
@@ -71,11 +72,11 @@ export const AnimatedScore = ({
         )}
       </div>
       <div className="w-full mt-4 max-w-xs">
-        <Progress 
-          value={displayScore} 
+        <Progress
+          value={displayScore}
           className="h-3"
         />
-        <div 
+        <div
           className={`h-3 mt-[-12px] rounded-full ${getProgressColor()} transition-all duration-500`}
           style={{ width: `${displayScore}%` }}
         />

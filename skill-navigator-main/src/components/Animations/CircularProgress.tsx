@@ -8,12 +8,12 @@ interface CircularProgressProps {
   showLabel?: boolean;
 }
 
-export const CircularProgress = ({ 
-  score, 
-  size = 200, 
+export const CircularProgress = ({
+  score,
+  size = 200,
   strokeWidth = 12,
   className = "",
-  showLabel = true 
+  showLabel = true
 }: CircularProgressProps) => {
   const [displayScore, setDisplayScore] = useState(0);
   const radius = (size - strokeWidth) / 2;
@@ -21,11 +21,12 @@ export const CircularProgress = ({
 
   useEffect(() => {
     let current = 0;
-    const increment = score / 100;
+    const targetScore = isNaN(score) ? 0 : score;
+    const increment = targetScore / 100;
     const timer = setInterval(() => {
       current += increment;
-      if (current >= score) {
-        current = score;
+      if (current >= targetScore) {
+        current = targetScore;
         clearInterval(timer);
       }
       setDisplayScore(Math.round(current));
@@ -74,7 +75,7 @@ export const CircularProgress = ({
       </svg>
       {showLabel && (
         <div className="absolute inset-0 flex items-center justify-center flex-col">
-          <span 
+          <span
             className="text-4xl font-black transition-colors duration-300"
             style={{ color: getColor() }}
           >

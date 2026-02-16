@@ -15,42 +15,53 @@ interface UserTypeCardProps {
   iconColor: string;
   delay: string;
   isVisible: boolean;
+  to: string;
 }
 
-const UserTypeCard = ({ icon: Icon, title, subtitle, items, gradient, iconColor, delay, isVisible }: UserTypeCardProps) => {
+const UserTypeCard = ({ icon: Icon, title, subtitle, items, gradient, iconColor, delay, isVisible, to }: UserTypeCardProps) => {
   const cardRef = use3DTilt({ maxRotation: 8, perspective: 1000, scale: 1.02 });
 
   return (
-    <Card
-      ref={cardRef}
-      className={`card-tilt group bg-black/30 backdrop-blur-sm border border-blue-600/30 hover:border-emerald-500/50 rounded-3xl p-10 transition-all duration-500 ${isVisible ? 'fade-in-up visible' : ''
-        }`}
-      style={{ transitionDelay: delay }}
-    >
-      <div className="flex items-center gap-4 mb-8">
-        <div className={`relative w-16 h-16 rounded-2xl ${gradient} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-          <Icon className="h-8 w-8 text-white icon-bounce" />
-          <div className={`absolute inset-0 rounded-2xl ${gradient} opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300`} />
+    <Link to={to} className="block h-full">
+      <Card
+        ref={cardRef}
+        className={`card-tilt group bg-black/30 backdrop-blur-sm border border-blue-600/30 hover:border-emerald-500/50 rounded-3xl p-10 transition-all duration-500 h-full ${isVisible ? 'fade-in-up visible' : ''
+          }`}
+        style={{ transitionDelay: delay }}
+      >
+        <div className="flex items-center gap-4 mb-8">
+          <div className={`relative w-16 h-16 rounded-2xl ${gradient} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+            <Icon className="h-8 w-8 text-white icon-bounce" />
+            <div className={`absolute inset-0 rounded-2xl ${gradient} opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-300`} />
+          </div>
+          <div>
+            <h3 className="text-2xl font-black text-white transition-all duration-300">{title}</h3>
+            <p className="text-white/60 font-medium">{subtitle}</p>
+          </div>
         </div>
-        <div>
-          <h3 className="text-2xl font-black text-white transition-all duration-300">{title}</h3>
-          <p className="text-white/60 font-medium">{subtitle}</p>
-        </div>
-      </div>
 
-      <ul className="space-y-4 mb-10">
-        {items.map((item, idx) => (
-          <li
-            key={idx}
-            className="flex items-start gap-3 group/item"
-            style={{ animationDelay: `${parseFloat(delay) + 0.1 + idx * 0.1}s` }}
-          >
-            <CheckCircle className={`h-5 w-5 ${iconColor} mt-0.5 flex-shrink-0 group-hover/item:scale-110 transition-transform icon-bounce`} />
-            <span className="text-white font-medium">{item}</span>
-          </li>
-        ))}
-      </ul>
-    </Card>
+        <ul className="space-y-4 mb-10">
+          {items.map((item, idx) => (
+            <li
+              key={idx}
+              className="flex items-start gap-3 group/item"
+              style={{ animationDelay: `${parseFloat(delay) + 0.1 + idx * 0.1}s` }}
+            >
+              <CheckCircle className={`h-5 w-5 ${iconColor} mt-0.5 flex-shrink-0 group-hover/item:scale-110 transition-transform icon-bounce`} />
+              <span className="text-white font-medium">{item}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="flex items-center justify-end">
+          <Button variant="ghost" className={`text-white group-hover:translate-x-2 transition-transform ${iconColor}`} asChild>
+            <span className="flex items-center cursor-pointer">
+              Get Started <ArrowRight className="ml-2 h-4 w-4" />
+            </span>
+          </Button>
+        </div>
+      </Card>
+    </Link>
   );
 };
 
@@ -112,6 +123,7 @@ const UserTypes = () => {
             iconColor="text-blue-400"
             delay="0.1s"
             isVisible={isVisible}
+            to="/hr-dashboard"
           />
 
           {/* Candidate Card */}
@@ -130,6 +142,7 @@ const UserTypes = () => {
             iconColor="text-emerald-400"
             delay="0.2s"
             isVisible={isVisible}
+            to="/candidate-dashboard"
           />
         </div>
       </div>

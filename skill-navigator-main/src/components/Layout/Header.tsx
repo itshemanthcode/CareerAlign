@@ -16,8 +16,8 @@ const Header = () => {
   return (
     <header
       className={`fixed top-0 z-50 w-full transition-all duration-300 ${scrolled
-          ? "bg-black/80 border-b border-emerald-600/20 shadow-lg backdrop-blur-xl"
-          : "bg-transparent border-b border-transparent"
+        ? "bg-black/80 border-b border-emerald-600/20 shadow-lg backdrop-blur-xl"
+        : "bg-transparent border-b border-transparent"
         }`}
     >
       <nav className="container mx-auto flex h-20 items-center justify-between px-4 md:px-6">
@@ -33,6 +33,14 @@ const Header = () => {
             CareerAlign AI
           </span>
         </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            to="/auth"
+            className="px-6 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-all duration-300 hover:shadow-[0_0_20px_rgba(37,99,235,0.5)] hover:scale-105 active:scale-95 flex items-center justify-center"
+          >
+            Login / Sign Up
+          </Link>
+        </div>
       </nav>
 
     </header>
